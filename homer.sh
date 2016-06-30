@@ -2,6 +2,7 @@
 set -e
 set -o pipefail
 
+# FIXME(akavel): set $src and $dst properly
 src=./dira
 dst=./dirb
 
@@ -32,16 +33,24 @@ function subtree {
         sort -z
 }
 
-# Create new files
-comm -z -13 <( cat lista | sort -z ) \
-            <( subtree "$src" ) |
+# Remember current state of $src in $oldsrc
+oldsrc="$( tempfile )"
+trap "rm '$oldsrc'" EXIT
+subtree "$src" > "$oldsrc"
+
+# TODO(akavel): For safety, verify $dst paths to be potentially removed are all correct links
+
+# FIXME(akavel): if [ $# -eq 0 ]; then nix-env -iA nixos.home; else nix-env "$@"; fi
+
+# Create links to added files
+comm -z -13 "$oldsrc" <( subtree "$src" ) |
     while IFS= read -r -d '' path; do
         printf "add: %q\n" $path
         mkdir -p "$(dirname "$dst/$path")"
         ln -s -r "$src/$path" "$dst/$path"
     done
-comm -z -23 <( cat lista | sort -z ) \
-            <( subtree "$src" ) |
+# Remove links to removed files
+comm -z -23 "$oldsrc" <( subtree "$src" ) |
     while IFS= read -r -d '' path; do
         printf "remove: %q\n" $path
         if [ ! -L "$dst/$path" ]; then
