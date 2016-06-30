@@ -14,24 +14,32 @@ function subtree {
     find "$root/" -type f -printf '%P\0' |
         sort -z
 }
+# TODO(akavel): below funcs untested yet
+function unmkdir {
+    # remove empty dirs, stop at $root
+    local root="$1"
+    local path="$2"
+    while (( ${#path} > ${#root} )); do
+        rmdir "$path" || true
+        path="$(dirname "$path")"
+    done
+}
 
 # Create new files
 comm -z -13 <( cat lista | sort -z ) \
             <( subtree "$src" ) |
     while IFS= read -r -d '' path; do
-        echo "added: [$path]"
+        printf "add: %q" $path
+        mkdir -p "$(dirname "$dst/$path")"
+        ln -s -r "$src/$path" "$dst/$path"
     done
 comm -z -23 <( cat lista | sort -z ) \
             <( subtree "$src" ) |
     while IFS= read -r -d '' path; do
-        echo "removed: [$path]"
+        printf "remove: %q" $path
+        [ -L "$dst/$path" ] || die "$dst/$path: is not a symbolic link"
+        rm "$dst/$path"
+        unmkdir "$dst" "$(dirname "$dst/$path")"
     done
 
-
-find "$src/" -type f -printf '%P\0' |
-    while IFS= read -r -d '' path; do
-        mkdir -p "$(dirname "$dst/$path")"
-        # Create link if target doesn't exist (this is default behavior of ln)
-        ln -s -r "$src/$path" "$dst/$path"
-    done
 
