@@ -5,24 +5,31 @@ set -o pipefail
 src=./dira
 dst=./dirb
 
-function die {
+function err {
     echo "$(basename "$0"): $@" >&2
+}
+function die {
+    err "$@"
     exit 1
 }
+# tempfile prints path of a newly created temporary file
+function tempfile {
+    mktemp --suffix=".$$.$(basename "$0")"
+}
+# unmkdir removes empty dirs from $root down to $path
+function unmkdir {
+    local root="$1"
+    local path="$2"
+    while [ ${#path} -gt ${#root} ]; do
+        rmdir "$path" || return
+        path="$(dirname "$path")"
+    done
+}
+# subtree prints relative paths of all files in $root tree, separated by NUL byte and sorted
 function subtree {
     local root="$1"
     find "$root/" -type f -printf '%P\0' |
         sort -z
-}
-# TODO(akavel): below funcs untested yet
-function unmkdir {
-    # remove empty dirs, stop at $root
-    local root="$1"
-    local path="$2"
-    while (( ${#path} > ${#root} )); do
-        rmdir "$path" || true
-        path="$(dirname "$path")"
-    done
 }
 
 # Create new files
