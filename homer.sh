@@ -29,14 +29,14 @@ function unmkdir {
 comm -z -13 <( cat lista | sort -z ) \
             <( subtree "$src" ) |
     while IFS= read -r -d '' path; do
-        printf "add: %q" $path
+        printf "add: %q\n" $path
         mkdir -p "$(dirname "$dst/$path")"
         ln -s -r "$src/$path" "$dst/$path"
     done
 comm -z -23 <( cat lista | sort -z ) \
             <( subtree "$src" ) |
     while IFS= read -r -d '' path; do
-        printf "remove: %q" $path
+        printf "remove: %q\n" $path
         [ -L "$dst/$path" ] || die "$dst/$path: is not a symbolic link"
         rm "$dst/$path"
         unmkdir "$dst" "$(dirname "$dst/$path")"
