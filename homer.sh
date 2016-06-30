@@ -44,7 +44,10 @@ comm -z -23 <( cat lista | sort -z ) \
             <( subtree "$src" ) |
     while IFS= read -r -d '' path; do
         printf "remove: %q\n" $path
-        [ -L "$dst/$path" ] || die "$dst/$path: is not a symbolic link"
+        if [ ! -L "$dst/$path" ]; then
+            err "$dst/$path: is not a symbolic link, refusing to remove"
+            continue
+        fi
         rm "$dst/$path"
         unmkdir "$dst" "$(dirname "$dst/$path")"
     done
